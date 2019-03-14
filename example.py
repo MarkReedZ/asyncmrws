@@ -1,10 +1,4 @@
-# asyncmrws
 
-Python 3.5+ async client for MrWorkserver
-
-# Usage
-
-```python
 import asyncio, time, ssl
 import asyncmrws
 import mrpacker
@@ -25,4 +19,4 @@ async def run(loop):
 loop = asyncio.get_event_loop()
 loop.run_until_complete(run(loop))
 loop.close()
-```
+
