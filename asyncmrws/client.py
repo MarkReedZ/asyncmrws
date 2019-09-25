@@ -108,7 +108,7 @@ class Client(object):
     if not self.servers[s].connected:
       if self.servers[s].pending_sz > self.max_pending:
         return -1
-    bstr = b'\x00\x01' + struct.pack("=I",0,0,data_len) + data
+    bstr = b'\x00\x01' + struct.pack("=I",data_len) + data
     self.servers[s].pending.append(bstr)
     self.servers[s].pending_sz += data_len + 6
     if self.servers[s].pending_sz > BUFFER_SIZE:
@@ -120,7 +120,6 @@ class Client(object):
     s = s % self.num_servers
     blen = len(b)
     bstr = b'\x00\x0B' + struct.pack(">H",blen) + b
-    k = 0xB
 
     self.servers[s].pending.append(bstr)
     self.servers[s].pending_sz += blen+4
@@ -128,6 +127,18 @@ class Client(object):
       await self.flush_pending(s)
 
     return await self.servers[s].read_queue.get()
+
+  async def set(self, s, b):
+    s = s % self.num_servers
+    blen = len(b)
+    bstr = b'\x00\x0C' + struct.pack(">H",blen) + b
+
+    self.servers[s].pending.append(bstr)
+    self.servers[s].pending_sz += blen+4
+    if self.servers[s].flush_queue.empty():
+      await self.flush_pending(s)
+
+    return 0
 
   async def flush(self):
     for s in range(len(self.servers)):
@@ -184,7 +195,7 @@ class Client(object):
             self.reconnect_task = self.reconnect(s)
           await self.reconnect_task
 
-        b = await self.servers[s].r.read(DEFAULT_BUFFER_SIZE) 
+        b = await self.servers[s].r.read(BUFFER_SIZE) 
         await self.parser.parse(s, b)
       except OSError as e:
         if self.reconnect_task == None:
